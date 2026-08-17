@@ -1,0 +1,6 @@
+[
+  { "type": "message", "subtype": "channel_join", "ts": "1784282100.000000", "user": "U01", "text": "has joined the channel" },
+  { "type": "message", "ts": "1784282400.000100", "user": "U01", "text": "Declaring a SEV-1 incident: checkout error rate spiking", "user_profile": { "real_name": "Ann Ops" } },
+  { "type": "message", "ts": "1784282820.000200", "user": "U02", "text": "On it, investigating the checkout errors", "user_profile": { "real_name": "Ben Dev" } },
+  { "type": "message", "ts": "1784283900.000300", "user": "U02", "text": "Rolled back the bad deploy, error rate dropping", "user_profile": { "real_name": "Ben Dev" } }
+]

@@ -1,0 +1,18 @@
+# Built binaries — anchored to the repo root with a leading slash so the
+# pattern never matches a same-named source directory (e.g. cmd/incident-timeline).
+/incident-timeline
+/incident-timeline-bin
+
+# Go build/test artifacts
+*.test
+*.out
+coverage.txt
+
+# Editor/OS noise
+.DS_Store
+.idea/
+.vscode/
+
+# Always keep fixtures used by tests and examples
+!testdata/**
+!examples/**
