@@ -11,17 +11,14 @@ permissions:
 
 jobs:
   test:
-    runs-on: incident-timeline
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # The self-hosted ARC runner is minimal; install the Go toolchain via apt
-      # rather than a download-based action (no xz available for .tar.xz).
-      - name: Install Go
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y golang-go
-          go version
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
 
       - name: Vet
         run: go vet ./...
