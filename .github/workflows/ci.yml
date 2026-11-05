@@ -12,13 +12,20 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ["1.26", "1.27"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: ${{ matrix.go }}
           cache: true
+
+      - name: Format
+        run: test -z "$(gofmt -l .)"
 
       - name: Vet
         run: go vet ./...
@@ -27,9 +34,19 @@ jobs:
         run: go test -race ./...
 
       - name: Build
-        run: go build -ldflags "-X main.version=${GITHUB_REF_NAME}" -o incident-timeline .
+        run: |
+          # Tags get their own name; branch and PR builds get a dev-<sha> marker
+          # instead of "main" or "<n>/merge".
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME}"
+          else
+            VERSION="dev-${GITHUB_SHA::7}"
+          fi
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          go build -ldflags "-X main.version=${VERSION}" -o incident-timeline .
 
       - name: Smoke test the CLI
         run: |
+          ./incident-timeline --version | grep -qx "incident-timeline ${VERSION}"
           ./incident-timeline --slack examples/slack-export.json --pd examples/pagerduty-log.json | tee /tmp/out.md
           grep -q "Time to resolve (MTTR)" /tmp/out.md
