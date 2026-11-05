@@ -1,7 +1,7 @@
 # incident-timeline
 
 [![ci](https://github.com/moveeeax/incident-timeline/actions/workflows/ci.yml/badge.svg)](https://github.com/moveeeax/incident-timeline/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Reconstruct *what happened when* for a postmortem in seconds. `incident-timeline`
@@ -19,6 +19,8 @@ one ordered story so you spend the retro discussing causes, not reassembling
 timestamps.
 
 ## Install
+
+Requires Go 1.26 or newer.
 
 ```sh
 go install github.com/moveeeax/incident-timeline@latest
