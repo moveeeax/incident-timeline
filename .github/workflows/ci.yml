@@ -50,3 +50,8 @@ jobs:
           ./incident-timeline --version | grep -qx "incident-timeline ${VERSION}"
           ./incident-timeline --slack examples/slack-export.json --pd examples/pagerduty-log.json | tee /tmp/out.md
           grep -q "Time to resolve (MTTR)" /tmp/out.md
+          ./incident-timeline --slack examples/slack-export.json --pd examples/pagerduty-log.json \
+            --deploys examples/deploys.json --postmortem | tee /tmp/pm.md
+          grep -q "## Contributing factors" /tmp/pm.md
+          ./incident-timeline noise --alerts examples/alerts.json --rules examples/rules.json | tee /tmp/noise.md
+          grep -q "## Delete candidates" /tmp/noise.md

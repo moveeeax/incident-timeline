@@ -22,6 +22,7 @@ type Metrics struct {
 	Mitigated    time.Time
 	Resolved     time.Time
 	MTTA         time.Duration // acknowledged - declared
+	TTM          time.Duration // mitigated - declared
 	MTTR         time.Duration // resolved - declared
 }
 
@@ -79,6 +80,9 @@ func computeMetrics(events []Event) Metrics {
 	}
 	if !m.Declared.IsZero() && !m.Acknowledged.IsZero() && !m.Acknowledged.Before(m.Declared) {
 		m.MTTA = m.Acknowledged.Sub(m.Declared)
+	}
+	if !m.Declared.IsZero() && !m.Mitigated.IsZero() && !m.Mitigated.Before(m.Declared) {
+		m.TTM = m.Mitigated.Sub(m.Declared)
 	}
 	if !m.Declared.IsZero() && !m.Resolved.IsZero() && !m.Resolved.Before(m.Declared) {
 		m.MTTR = m.Resolved.Sub(m.Declared)

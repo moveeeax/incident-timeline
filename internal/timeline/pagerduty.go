@@ -15,6 +15,7 @@ type pdLogEntry struct {
 	CreatedAt string `json:"created_at"`
 	Summary   string `json:"summary"`
 	Agent     struct {
+		Type    string `json:"type"`
 		Summary string `json:"summary"`
 	} `json:"agent"`
 	Channel struct {
@@ -50,6 +51,7 @@ func ParsePagerDuty(data []byte) ([]Event, error) {
 			Actor:  pdActor(e),
 			Text:   pdText(e),
 			Marker: pdMarker(e.Type),
+			Bot:    pdBot(e),
 		})
 	}
 	return events, nil
@@ -85,6 +87,17 @@ func pdMarker(t string) Marker {
 	default:
 		return MarkerNone
 	}
+}
+
+// pdBot reports whether the entry was made by something other than a person:
+// a service or integration agent ("service_reference", "integration_reference")
+// or no agent at all. Entries without an agent type are assumed to be people.
+func pdBot(e pdLogEntry) bool {
+	if e.Agent.Summary == "" {
+		return true
+	}
+	t := strings.TrimSuffix(e.Agent.Type, "_reference")
+	return t != "" && t != "user"
 }
 
 func pdActor(e pdLogEntry) string {

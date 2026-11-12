@@ -1,0 +1,5 @@
+[
+  { "time": "2026-07-16T15:10:00Z", "service": "search", "version": "v3.2.0", "from": "1a2b3c4", "to": "5d6e7f8", "actor": "Dee Ops" },
+  { "time": "2026-07-17T09:52:00Z", "service": "checkout", "version": "v2.14.0", "from": "9f8e7d6", "to": "abc1234", "actor": "Cara Dev", "url": "https://ci.example.com/deploys/812" },
+  { "time": "2026-07-17T10:24:00Z", "service": "checkout", "version": "v2.13.4", "from": "abc1234", "to": "9f8e7d6", "actor": "Ben Dev" }
+]

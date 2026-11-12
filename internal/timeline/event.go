@@ -54,8 +54,13 @@ func (m Marker) title() string {
 // display-timezone conversion happens at render time.
 type Event struct {
 	Time   time.Time
-	Source string // "slack" or "pagerduty"
+	Source string // "slack", "pagerduty" or "deploy"
 	Actor  string
 	Text   string
 	Marker Marker
+	// Bot is true when the actor is an integration or bot rather than a
+	// person, so it is left out of the participant list.
+	Bot bool
+	// Pinned is true for Slack messages pinned in the incident channel.
+	Pinned bool
 }

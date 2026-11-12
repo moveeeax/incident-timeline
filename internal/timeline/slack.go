@@ -12,11 +12,13 @@ import (
 // slackMessage mirrors the fields we care about from a Slack channel export.
 // A channel export is a JSON array of these objects.
 type slackMessage struct {
-	Type    string `json:"type"`
-	Subtype string `json:"subtype"`
-	TS      string `json:"ts"`
-	User    string `json:"user"`
-	Text    string `json:"text"`
+	Type    string   `json:"type"`
+	Subtype string   `json:"subtype"`
+	TS      string   `json:"ts"`
+	User    string   `json:"user"`
+	Text    string   `json:"text"`
+	BotID   string   `json:"bot_id"`
+	Pinned  []string `json:"pinned_to"`
 	Profile struct {
 		RealName string `json:"real_name"`
 		Name     string `json:"name"`
@@ -69,6 +71,8 @@ func ParseSlack(data []byte) ([]Event, error) {
 			Actor:  slackActor(m),
 			Text:   text,
 			Marker: classify(text),
+			Bot:    m.BotID != "" || m.Subtype == "bot_message",
+			Pinned: len(m.Pinned) > 0,
 		})
 	}
 	return events, nil
