@@ -1,11 +1,14 @@
 // Command incident-timeline merges a Slack channel export and a PagerDuty
 // incident log into one chronological, timezone-normalized Markdown timeline
-// ready to paste into a postmortem.
+// ready to paste into a postmortem, or renders a postmortem draft from it.
+// The "noise" subcommand ranks Prometheus alerts by how noisy they are.
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -22,18 +25,28 @@ func main() {
 	}
 }
 
-func run(args []string, stdout *os.File) error {
+func run(args []string, stdout io.Writer) error {
+	if len(args) > 0 && args[0] == "noise" {
+		return runNoise(args[1:], stdout)
+	}
 	fs := flag.NewFlagSet("incident-timeline", flag.ContinueOnError)
 	var (
-		slackPath = fs.String("slack", "", "path to a Slack channel export (JSON)")
-		pdPath    = fs.String("pd", "", "path to a PagerDuty incident log (JSON)")
-		tzName    = fs.String("tz", "UTC", "display timezone (IANA name, e.g. America/New_York)")
-		title     = fs.String("title", "Incident Timeline", "document title")
-		outPath   = fs.String("out", "", "write to this file instead of stdout")
-		showVer   = fs.Bool("version", false, "print version and exit")
+		slackPath   = fs.String("slack", "", "path to a Slack channel export (JSON)")
+		pdPath      = fs.String("pd", "", "path to a PagerDuty incident log (JSON)")
+		deploysPath = fs.String("deploys", "", "path to a deploy history (JSON array)")
+		lookback    = fs.Duration("deploy-lookback", 24*time.Hour, "include deploys this long before the first event")
+		tzName      = fs.String("tz", "UTC", "display timezone (IANA name, e.g. America/New_York)")
+		title       = fs.String("title", "Incident Timeline", "document title")
+		postmortem  = fs.Bool("postmortem", false, "render a postmortem draft with the built-in template")
+		tmplPath    = fs.String("template", "", "render a postmortem draft with this Go text/template file (implies --postmortem)")
+		printTmpl   = fs.Bool("print-template", false, "print the built-in postmortem template and exit")
+		startedStr  = fs.String("started", "", "when impact began (RFC 3339), for time to detect")
+		outPath     = fs.String("out", "", "write to this file instead of stdout")
+		showVer     = fs.Bool("version", false, "print version and exit")
 	)
 	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: incident-timeline --slack export.json --pd incident.json [--tz ZONE] [--out FILE]\n\n")
+		fmt.Fprintf(os.Stderr, "usage: incident-timeline --slack export.json --pd incident.json [--deploys deploys.json] [--postmortem | --template FILE] [--tz ZONE] [--out FILE]\n")
+		fmt.Fprintf(os.Stderr, "       incident-timeline noise --help\n\n")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -41,6 +54,10 @@ func run(args []string, stdout *os.File) error {
 	}
 	if *showVer {
 		fmt.Fprintln(stdout, "incident-timeline", version)
+		return nil
+	}
+	if *printTmpl {
+		fmt.Fprint(stdout, timeline.DefaultTemplate)
 		return nil
 	}
 	if *slackPath == "" && *pdPath == "" {
@@ -69,8 +86,59 @@ func run(args []string, stdout *os.File) error {
 		sources = append(sources, ev)
 	}
 
+	var started time.Time
+	if *startedStr != "" {
+		started, err = time.Parse(time.RFC3339, *startedStr)
+		if err != nil {
+			return fmt.Errorf("--started: %w", err)
+		}
+	}
+
+	// Parse the template before doing any work so a typo fails fast.
+	tmplName, tmplText := "default", timeline.DefaultTemplate
+	if *tmplPath != "" {
+		data, err := os.ReadFile(*tmplPath)
+		if err != nil {
+			return fmt.Errorf("read template: %w", err)
+		}
+		tmplName, tmplText = *tmplPath, string(data)
+		*postmortem = true
+	}
+	tmpl, err := timeline.ParseTemplate(tmplName, tmplText)
+	if err != nil {
+		return err
+	}
+
+	var deploys []timeline.Deploy
+	if *deploysPath != "" {
+		data, err := os.ReadFile(*deploysPath)
+		if err != nil {
+			return fmt.Errorf("read deploys: %w", err)
+		}
+		all, err := timeline.ParseDeploys(data)
+		if err != nil {
+			return err
+		}
+		var incident []timeline.Event
+		for _, s := range sources {
+			incident = append(incident, s...)
+		}
+		deploys = timeline.DeploysInWindow(all, incident, *lookback)
+		sources = append(sources, timeline.DeployEvents(deploys))
+	}
+
 	tl := timeline.Build(*title, loc, sources...)
-	md := tl.Markdown()
+	var md string
+	if *postmortem {
+		var buf bytes.Buffer
+		pm := tl.Postmortem(timeline.PostmortemOptions{ImpactStart: started, Deploys: deploys})
+		if err := pm.Render(&buf, tmpl); err != nil {
+			return err
+		}
+		md = buf.String()
+	} else {
+		md = tl.Markdown()
+	}
 
 	if *outPath != "" {
 		if err := os.WriteFile(*outPath, []byte(md), 0o644); err != nil {

@@ -3,7 +3,7 @@
     {
       "type": "trigger_log_entry",
       "created_at": "2026-07-17T10:00:00Z",
-      "agent": { "summary": "Datadog" },
+      "agent": { "type": "service_reference", "summary": "Datadog" },
       "channel": { "summary": "Checkout error rate > 5%" }
     },
     {

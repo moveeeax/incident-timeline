@@ -25,13 +25,23 @@ func (t *Timeline) Markdown() string {
 	if t.MTTA > 0 {
 		b.WriteString("- **Time to acknowledge (MTTA):** " + humanDuration(t.MTTA) + "\n")
 	}
+	if t.TTM > 0 {
+		b.WriteString("- **Time to mitigate (TTM):** " + humanDuration(t.TTM) + "\n")
+	}
 	if t.MTTR > 0 {
 		b.WriteString("- **Time to resolve (MTTR):** " + humanDuration(t.MTTR) + "\n")
 	}
 	b.WriteString("\n")
 
 	b.WriteString("## Timeline\n\n")
-	b.WriteString("| Time (" + tz + ") | Source | Event |\n")
+	b.WriteString(t.Table())
+	return b.String()
+}
+
+// Table renders just the chronological event table, in the display timezone.
+func (t *Timeline) Table() string {
+	var b strings.Builder
+	b.WriteString("| Time (" + t.Loc.String() + ") | Source | Event |\n")
 	b.WriteString("| --- | --- | --- |\n")
 	for _, e := range t.Events {
 		b.WriteString("| " + e.Time.In(t.Loc).Format(tsLayout) + " | " + e.Source + " | " + eventCell(e) + " |\n")
@@ -50,6 +60,9 @@ func (t *Timeline) writeMetric(b *strings.Builder, label string, ts time.Time) {
 // marker glyph/label and pipe-escaping the free text.
 func eventCell(e Event) string {
 	var parts []string
+	if e.Pinned {
+		parts = append(parts, "📌")
+	}
 	parts = append(parts, e.Marker.emoji())
 	if tt := e.Marker.title(); tt != "" {
 		parts = append(parts, tt+" —")
